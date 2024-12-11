@@ -1,0 +1,18 @@
+﻿services:
+  cybersecurityproject:
+    image: cybersecurityproject
+    container_name: aspNetApp
+    ports:
+      - 8080:8080
+    build:
+      context: .
+      dockerfile: CybersecurityProject/Dockerfile
+  
+  nginx:
+    image: cybersecurityproject-nginx
+    container_name: nginx
+    ports:
+      - 80:80
+    build:
+      context: .
+      dockerfile: Nginx/Dockerfile
