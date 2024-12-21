@@ -1,5 +1,6 @@
 ﻿using CybersecurityProject.Models;
-using CybersecurityProject.Models.dto;
+using CybersecurityProject.Models.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,6 +21,12 @@ public class AccountController : Controller
     {
         return View();
     }
+    [HttpGet]
+    public IActionResult Login()
+    {
+        return View();
+    }
+    
     [HttpPost]
     public async Task<IActionResult> Register(RegisterViewModel viewModel)
     {
@@ -107,6 +114,84 @@ public class AccountController : Controller
         await _signInManager.SignOutAsync();
         return RedirectToAction("Index", "Home");
     }
+
+    public async Task<IActionResult> Login(LoginViewModel viewModel)
+    {
+        if (ModelState.IsValid)
+        {
+            var user = await _userManager.FindByEmailAsync(viewModel.Email);
+            if (user == null)
+            {
+                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                return View(viewModel);
+            }
+            
+            var result = await _signInManager.PasswordSignInAsync(user.UserName, viewModel.Password, false, true);
+
+            if (result.Succeeded)
+            {
+                await _signInManager.SignOutAsync();
+                if (!user.TwoFactorEnabled)
+                {
+                    return RedirectToAction("Enable2FA", new { userId = user.Id } );
+                }
+                else
+                {
+                    return RedirectToAction("Error", "Home");
+                }
+                
+            }
+            if (result.RequiresTwoFactor)
+            {
+                return RedirectToAction("Login2FA");
+            }
+            if (result.IsLockedOut)
+            {
+                return RedirectToPage("./Lockout");
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                return View(viewModel);
+            }
+            
+        }
+        return View(viewModel);
+    }
+
+    [HttpGet]
+    public IActionResult Login2FA()
+    {
+        return View();
+    }
+    [HttpPost]
+    public async Task<IActionResult> Login2FA(Login2FAViewModel viewModel)
+    {
+        if (Request.Cookies["Identity.TwoFactorUserId"] == null)
+        {
+            return RedirectToAction("Login");
+        }
+        var result = await _signInManager.TwoFactorAuthenticatorSignInAsync(
+            viewModel.Code, 
+            false, 
+            false);
+
+        if (result.Succeeded)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+        else if (result.IsLockedOut)
+        {
+            return RedirectToPage("./Lockout");
+        }
+        else
+        {
+            ModelState.AddModelError(string.Empty, "Invalid authenticator code.");
+            return View(viewModel);
+        }
+    }
+
+
 }
 
 // TO DO: Pomyśleć czy nie przerzucić 2FA po loginie i nie dawać dostępu innym kontom.

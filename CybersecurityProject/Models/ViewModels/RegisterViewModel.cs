@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace CybersecurityProject.Models.dto;
+namespace CybersecurityProject.Models.ViewModels;
 
 public class RegisterViewModel
 {

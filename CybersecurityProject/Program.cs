@@ -17,6 +17,8 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
     options.Lockout.MaxFailedAccessAttempts = 3;  
     // Lockout time duration after failed login attempts
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    options.User.RequireUniqueEmail = true; 
+    options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
 }).AddEntityFrameworkStores<ApplicationDbContext>() // Link Identity to ApplicationDbContext
 .AddDefaultTokenProviders(); // Default token providers for password reset, etc.
 

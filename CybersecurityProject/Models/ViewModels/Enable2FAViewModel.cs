@@ -1,4 +1,4 @@
-﻿namespace CybersecurityProject.Models.dto;
+﻿namespace CybersecurityProject.Models.ViewModels;
 
 public class Enable2FAViewModel
 {
