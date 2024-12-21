@@ -1,0 +1,19 @@
+﻿@model CybersecurityProject.Models.dto.Enable2FAViewModel
+@{
+    ViewBag.Title = "title";
+    Layout = "_Layout";
+}
+<div class="flex-column">
+    <div class="mb-3">
+        <h2>Enable2FA</h2>
+        <span>Your secret: @Model.Key</span>
+    </div>
+    <form asp-action="Confirm2FASetup" method="post">
+        <div class="form-group">
+            <label for="Code">Enter the code from your authenticator app:</label>
+            <input type="text" class="form-control" id="Code" name="Code" required/>
+            <input type="hidden" class="form-control" id="UserId" name="UserId" value="@Model.UserId" required/>
+        </div>
+        <input class="btn btn-primary" type="submit" value="Submit">
+    </form>
+</div>

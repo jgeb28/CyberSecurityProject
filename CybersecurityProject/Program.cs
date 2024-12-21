@@ -1,7 +1,24 @@
+using CybersecurityProject.Data;
+using CybersecurityProject.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(
+    builder.Configuration.GetConnectionString("localDb")));
+builder.Services.AddIdentity<User, IdentityRole>(options =>
+{
+    // Disable email confirmation
+    options.SignIn.RequireConfirmedEmail = false;
+    // Max failed attempts
+    options.Lockout.MaxFailedAccessAttempts = 3;  
+    // Lockout time duration after failed login attempts
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+}).AddEntityFrameworkStores<ApplicationDbContext>() // Link Identity to ApplicationDbContext
+.AddDefaultTokenProviders(); // Default token providers for password reset, etc.
 
 var app = builder.Build();
 
@@ -20,6 +37,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(
