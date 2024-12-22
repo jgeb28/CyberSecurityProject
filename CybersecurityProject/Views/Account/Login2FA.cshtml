@@ -1,19 +1,21 @@
 ﻿@model CybersecurityProject.Models.ViewModels.Login2FAViewModel
 
 @{
-    ViewBag.Title = "title";
+    ViewBag.Title = "Login2FA";
     Layout = "_Layout";
 }
 
-<div class="flex-column">
-    <h2 class="mb-3">Login2FA</h2>
-    <form asp-action="Login2FA" method="post">
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-        <div class="form-group">
-            <label asp-for="Code">Enter the code from your authenticator app:</label>
-            <input asp-for="Code" type="text" class="form-control" id="Code" name="Code" required/>
-            <span asp-validation-for="Code" class="text-danger"></span>
-        </div>
-        <input class="btn btn-primary" type="submit" value="Submit">
-    </form>
+<div class="d-flex w-100 justify-content-center">
+    <div class="w-50 border rounded p-4">
+        <h2 class="mb-3">Login2FA</h2>
+        <form asp-action="Login2FA" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group mb-3">
+                <label asp-for="Code">Enter the code from your authenticator app:</label>
+                <input asp-for="Code" type="text" class="form-control" id="Code" name="Code" required/>
+                <span asp-validation-for="Code" class="text-danger"></span>
+            </div>
+            <button class="btn btn-primary" type="submit" value="Submit">Submit</button>
+        </form>
+    </div>
 </div>

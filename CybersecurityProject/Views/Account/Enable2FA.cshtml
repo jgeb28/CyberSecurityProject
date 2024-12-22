@@ -1,19 +1,25 @@
 ﻿@model CybersecurityProject.Models.ViewModels.Enable2FAViewModel
 @{
-    ViewBag.Title = "title";
+    ViewBag.Title = "Enable2FA";
     Layout = "_Layout";
 }
-<div class="flex-column">
-    <div class="mb-3">
-        <h2>Enable2FA</h2>
-        <span>Your secret: @Model.Key</span>
-    </div>
-    <form asp-action="Confirm2FASetup" method="post">
-        <div class="form-group">
-            <label for="Code">Enter the code from your authenticator app:</label>
-            <input type="text" class="form-control" id="Code" name="Code" required/>
-            <input type="hidden" class="form-control" id="UserId" name="UserId" value="@Model.UserId" required/>
+<div class="d-flex w-100 justify-content-center">
+    <div class="w-50 border rounded p-4">
+        <div class="mb-3">
+            <h2>Enable2FA</h2>
+            <span>Your secret: @Model.Key</span>
         </div>
-        <input class="btn btn-primary" type="submit" value="Submit">
-    </form>
+        <form asp-action="Confirm2FASetup" method="post">
+            <div class="form-group mb-3">
+                <label for="Code">Enter the code from your authenticator app:</label>
+                <input type="text" class="form-control" id="Code" name="Code" required/>
+                <input type="hidden" class="form-control" id="UserId" name="UserId" value="@Model.UserId" required/>
+                @if (TempData["Error2FA"] != null)
+                {
+                    <span class="text-danger">@TempData["Error2FA"]</span>
+                }
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
 </div>

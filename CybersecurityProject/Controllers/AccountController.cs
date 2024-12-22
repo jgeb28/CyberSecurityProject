@@ -91,14 +91,18 @@ public class AccountController : Controller
         {
             return NotFound();
         }
+        if (user.TwoFactorEnabled)
+        {
+            return RedirectToAction("Index", "Home");
+        }
         
         var isTokenValid = await _userManager.VerifyTwoFactorTokenAsync(
             user, _userManager.Options.Tokens.AuthenticatorTokenProvider, code);
 
         if (!isTokenValid)
         {
-            ModelState.AddModelError("Code", "Verification code is invalid.");
-            return View("Enable2FA"); 
+            TempData["Error2FA"] = "Invalid code";
+            return RedirectToAction("Enable2FA", new { userId }); 
         }
         
         await _userManager.SetTwoFactorEnabledAsync(user, true);
