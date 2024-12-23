@@ -1,4 +1,4 @@
-﻿@model CybersecurityProject.Models.ViewModels.Login2FAViewModel
+﻿@model CybersecurityProject.Models.ViewModels.Login2FaViewModel
 
 @{
     ViewBag.Title = "Login2FA";
@@ -8,7 +8,7 @@
 <div class="d-flex w-100 justify-content-center">
     <div class="w-50 border rounded p-4">
         <h2 class="mb-3">Login2FA</h2>
-        <form asp-action="Login2FA" method="post">
+        <form asp-action="Login2Fa" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="form-group mb-3">
                 <label asp-for="Code">Enter the code from your authenticator app:</label>

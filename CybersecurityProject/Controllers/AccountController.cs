@@ -1,6 +1,7 @@
-﻿using CybersecurityProject.Models;
+﻿using System.Security.Cryptography;
+using System.Text;
+using CybersecurityProject.Models;
 using CybersecurityProject.Models.ViewModels;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,17 +33,24 @@ public class AccountController : Controller
     {
         if (ModelState.IsValid)
         {
+            RSA rsa = RSA.Create(2048);
+            var publicKey = rsa.ExportSubjectPublicKeyInfo();
+            string publicKeyString = Convert.ToBase64String(publicKey, Base64FormattingOptions.InsertLineBreaks);
+            var privateKey = rsa.ExportPkcs8PrivateKey();
+            string privateKeyString = Convert.ToBase64String(EncryptRsaKey(privateKey, viewModel.Password), Base64FormattingOptions.InsertLineBreaks);
             User user = new User
             {
                 UserName = viewModel.Username,
                 Email = viewModel.Email,
+                RsaPublicKey = publicKeyString,
+                RsaPrivateKeyEncrypted = privateKeyString
             };
             
             var result = await _userManager.CreateAsync(user, viewModel.Password);
 
             if (result.Succeeded)
             {
-                return RedirectToAction("Enable2FA", new { userId = user.Id });
+                return RedirectToAction("Enable2Fa", new { userId = user.Id });
             }
             else
             {
@@ -59,7 +67,7 @@ public class AccountController : Controller
     }
     
     [HttpGet] [Route("/Account/Enable2FA/{userId}")]
-    public async Task<IActionResult> Enable2FA(string userId)
+    public async Task<IActionResult> Enable2Fa(string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
@@ -79,12 +87,12 @@ public class AccountController : Controller
                 key = await _userManager.GetAuthenticatorKeyAsync(user);
             }
 
-            var model = new Enable2FAViewModel { Key = key, UserId = userId };
+            var model = new Enable2FaViewModel { Key = key, UserId = userId };
             return View(model);
         }
     }
     [HttpPost]
-    public async Task<IActionResult> Confirm2FASetup(string code, string userId)
+    public async Task<IActionResult> Confirm2FaSetup(string code, string userId)
     {
         var user = await _userManager.FindByIdAsync(userId); 
         if (user == null)
@@ -102,7 +110,7 @@ public class AccountController : Controller
         if (!isTokenValid)
         {
             TempData["Error2FA"] = "Invalid code";
-            return RedirectToAction("Enable2FA", new { userId }); 
+            return RedirectToAction("Enable2Fa", new { userId }); 
         }
         
         await _userManager.SetTwoFactorEnabledAsync(user, true);
@@ -137,7 +145,7 @@ public class AccountController : Controller
                 await _signInManager.SignOutAsync();
                 if (!user.TwoFactorEnabled)
                 {
-                    return RedirectToAction("Enable2FA", new { userId = user.Id } );
+                    return RedirectToAction("Enable2Fa", new { userId = user.Id } );
                 }
                 else
                 {
@@ -147,7 +155,7 @@ public class AccountController : Controller
             }
             if (result.RequiresTwoFactor)
             {
-                return RedirectToAction("Login2FA");
+                return RedirectToAction("Login2Fa");
             }
             if (result.IsLockedOut)
             {
@@ -164,12 +172,12 @@ public class AccountController : Controller
     }
 
     [HttpGet]
-    public IActionResult Login2FA()
+    public IActionResult Login2Fa()
     {
         return View();
     }
     [HttpPost]
-    public async Task<IActionResult> Login2FA(Login2FAViewModel viewModel)
+    public async Task<IActionResult> Login2Fa(Login2FaViewModel viewModel)
     {
         if (Request.Cookies["Identity.TwoFactorUserId"] == null)
         {
@@ -193,6 +201,60 @@ public class AccountController : Controller
             ModelState.AddModelError(string.Empty, "Invalid authenticator code.");
             return View(viewModel);
         }
+    }
+
+    public byte[] EncryptRsaKey(byte[] rsaKey, string password)
+    {
+        byte[] salt = new byte[16];
+        byte[] iv = new byte[16];
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(salt);
+        }
+        using (var rng = RandomNumberGenerator.Create())
+        {
+            rng.GetBytes(iv);
+        }
+        
+        using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 10_000, HashAlgorithmName.SHA256);
+        byte[] aesKey = pbkdf2.GetBytes(32);
+        using var fileStream = new MemoryStream();
+        using Aes aes = Aes.Create();
+        using CryptoStream cryptStream = new CryptoStream(
+            fileStream, aes.CreateEncryptor(aesKey, iv), CryptoStreamMode.Write);
+        cryptStream.Write(rsaKey, 0, rsaKey.Length); 
+        cryptStream.FlushFinalBlock();
+        
+        byte[] ciphertext = fileStream.ToArray();
+        byte[] encryptedData = new byte[salt.Length + iv.Length + ciphertext.Length];
+        Buffer.BlockCopy(salt, 0, encryptedData, 0, salt.Length);
+        Buffer.BlockCopy(iv, 0, encryptedData, salt.Length, iv.Length);
+        Buffer.BlockCopy(ciphertext, 0, encryptedData, salt.Length + iv.Length, ciphertext.Length);
+
+        return encryptedData;
+    }
+    
+    public byte[] DecryptRsaKey(byte[] rsaCipher, string password)
+    {
+        byte[] salt = new byte[16];
+        byte[] iv = new byte[16];
+        byte[] ciphertext = new byte[rsaCipher.Length - salt.Length - iv.Length];
+       
+        Buffer.BlockCopy(rsaCipher, 0, salt, 0, salt.Length);
+        Buffer.BlockCopy(rsaCipher, salt.Length, iv, 0, iv.Length);
+        Buffer.BlockCopy(rsaCipher, salt.Length + iv.Length, ciphertext, 0, ciphertext.Length);
+        
+        using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 10_000, HashAlgorithmName.SHA256);
+        byte[] aesKey = pbkdf2.GetBytes(32);
+        
+        var fileStream = new MemoryStream(ciphertext);
+        using Aes aes = Aes.Create();
+        using CryptoStream cryptStream = new CryptoStream(
+            fileStream, aes.CreateDecryptor(aesKey, iv), CryptoStreamMode.Read);
+        using var decryptedData = new MemoryStream();
+        cryptStream.CopyTo(decryptedData);
+    
+        return decryptedData.ToArray();
     }
 
 

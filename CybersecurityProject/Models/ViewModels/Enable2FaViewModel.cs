@@ -1,6 +1,6 @@
 ﻿namespace CybersecurityProject.Models.ViewModels;
 
-public class Enable2FAViewModel
+public class Enable2FaViewModel
 {
     public string Key { get; set; }
     public string UserId { get; set; }

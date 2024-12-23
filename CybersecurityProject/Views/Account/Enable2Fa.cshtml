@@ -1,4 +1,4 @@
-﻿@model CybersecurityProject.Models.ViewModels.Enable2FAViewModel
+﻿@model CybersecurityProject.Models.ViewModels.Enable2FaViewModel
 @{
     ViewBag.Title = "Enable2FA";
     Layout = "_Layout";
@@ -9,7 +9,7 @@
             <h2>Enable2FA</h2>
             <span>Your secret: @Model.Key</span>
         </div>
-        <form asp-action="Confirm2FASetup" method="post">
+        <form asp-action="Confirm2FaSetup" method="post">
             <div class="form-group mb-3">
                 <label for="Code">Enter the code from your authenticator app:</label>
                 <input type="text" class="form-control" id="Code" name="Code" required/>
