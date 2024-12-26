@@ -1,0 +1,16 @@
+﻿@{
+    ViewBag.Title = "Profile";
+    Layout = "_Layout";
+}
+
+<div class="d-flex w-100 justify-content-center align-items-center">
+    <div class="d-flex flex-column justify-content-center align-items-center w-50 border rounded p-4">
+        <h2 class="text-center mb-3">Hi @User.Identity.Name!</h2>
+        <a asp-controller="Account" asp-action="ChangePassword" class="btn btn-primary mb-3" style="width: 10rem">Change Password</a>
+        <a asp-controller="Account" asp-action="Logout" class="btn btn-outline-primary mb-3" style="width: 10rem">Log out</a>
+        @if (TempData["PasswordChangeSuccess"] != null)
+        {
+            <p class="text-success">@TempData["PasswordChangeSuccess"]</p>
+        }
+    </div>
+</div>

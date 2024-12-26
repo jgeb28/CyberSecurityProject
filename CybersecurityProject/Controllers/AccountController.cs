@@ -2,6 +2,7 @@
 using System.Text;
 using CybersecurityProject.Models;
 using CybersecurityProject.Models.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -255,6 +256,51 @@ public class AccountController : Controller
         cryptStream.CopyTo(decryptedData);
     
         return decryptedData.ToArray();
+    }
+
+    [Authorize]
+    [HttpGet]
+    public IActionResult ChangePassword()
+    {
+        return View();
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> ChangePassword(ChangePasswordViewModel viewModel)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(viewModel);
+        }
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return RedirectToAction("Login");
+        }
+        
+        var is2FaValid = await _userManager.VerifyTwoFactorTokenAsync(user, "Authenticator", viewModel.Code);
+        if (!is2FaValid)
+        {
+            ModelState.AddModelError("Code", "Invalid code.");
+            return View(viewModel);
+        }
+        
+        var result = await _userManager.ChangePasswordAsync(user,viewModel.OldPassword,viewModel.NewPassword);
+        if (result.Succeeded)
+        {
+            await _signInManager.RefreshSignInAsync(user); 
+            TempData["PasswordChangeSuccess"] = "Your password was changed successfully!";
+            return RedirectToAction("Profile", "Home");
+        }
+
+        foreach (var error in result.Errors)
+        {
+            ModelState.AddModelError(string.Empty, error.Description);
+        }
+
+        return View(viewModel);
     }
 
 

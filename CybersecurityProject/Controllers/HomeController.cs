@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using CybersecurityProject.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CybersecurityProject.Controllers;
 
@@ -17,8 +18,15 @@ public class HomeController : Controller
     {
         return View();
     }
-
-    public IActionResult Privacy()
+    [HttpGet("/Lockout")]
+    public IActionResult Lockout()
+    {
+        return View();
+    }
+    
+    [Authorize]
+    [HttpGet("/Profile")]
+    public IActionResult Profile()
     {
         return View();
     }
