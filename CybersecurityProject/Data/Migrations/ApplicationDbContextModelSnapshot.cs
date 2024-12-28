@@ -23,13 +23,12 @@ namespace CybersecurityProject.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("AuthorId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasMaxLength(10000)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Image")
-                        .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
@@ -37,12 +36,9 @@ namespace CybersecurityProject.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("UserId")
-                        .HasColumnType("TEXT");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("AuthorId");
 
                     b.ToTable("Posts");
                 });
@@ -251,9 +247,11 @@ namespace CybersecurityProject.Data.Migrations
 
             modelBuilder.Entity("CybersecurityProject.Models.Post", b =>
                 {
-                    b.HasOne("CybersecurityProject.Models.User", null)
+                    b.HasOne("CybersecurityProject.Models.User", "Author")
                         .WithMany("Posts")
-                        .HasForeignKey("UserId");
+                        .HasForeignKey("AuthorId");
+
+                    b.Navigation("Author");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

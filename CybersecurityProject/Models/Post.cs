@@ -13,6 +13,5 @@ public class Post
     [Required] [StringLength(10000)]
     public required string Content { get; set; }
     
-    [StringLength(1000)]
-    public string? Image { get; set; }
+    public required User Author { get; set; }
 }

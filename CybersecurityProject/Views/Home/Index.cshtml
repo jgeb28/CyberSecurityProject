@@ -1,7 +1,31 @@
-﻿@{
+﻿@model List<CybersecurityProject.Models.ViewModels.PostDisplayViewModel>
+@{
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
+<div class="container mt-5">
+    <h1 class="mb-4">Posts</h1>
+    @if (!Model.Any())
+    {
+        <p>No posts available.</p>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var post in Model)
+            {
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">@post.Post.Title</h5>
+                            <span>Author:@post.AuthorName</span>
+                            <div class="card-text">
+                                @Html.Raw(post.Post.Content)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
 </div>
