@@ -26,11 +26,19 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/tinymce_7.6.0/tinymce/js/tinymce/tinymce.min.js"></script>
+    <script src="~/js/ckeditor_4.22.1_standard/ckeditor/ckeditor.js"></script>
     <script>
-        tinymce.init({
-            selector: "#richTextEditor",
+        CKEDITOR.replace( 'richTextEditor' );
+        CKEDITOR.replace('editor1', {
+            // Configuring the Image plugin to limit image dimensions
+            image: {
+                // Minimum size for the image to be inserted
+                maxWidth: 500,
+                maxHeight: 500
+            },
+
+            // Other CKEditor configurations...
         });
-        
+
     </script>
 }

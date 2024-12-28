@@ -2,8 +2,11 @@
 @{
     ViewData["Title"] = "Home Page";
 }
-
-<div class="container mt-5">
+@if (TempData["Error"] != null)
+{
+    <p class="alert-danger">@TempData["Error"]</p>
+}
+<div class="d-flex w-100 flex-column align-items-center">
     <h1 class="mb-4">Posts</h1>
     @if (!Model.Any())
     {
@@ -11,21 +14,19 @@
     }
     else
     {
-        <div class="row">
-            @foreach (var post in Model)
-            {
-                <div class="col-12 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">@post.Post.Title</h5>
-                            <span>Author:@post.AuthorName</span>
-                            <div class="card-text">
-                                @Html.Raw(post.Post.Content)
-                            </div>
+        @foreach (var post in Model)
+        {
+            <div class="w-50 col-12 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">@post.Post.Title</h5>
+                        <span>Author:@post.AuthorName</span>
+                        <div class="card-text">
+                            @Html.Raw(post.Post.Content)
                         </div>
                     </div>
                 </div>
-            }
-        </div>
+            </div>
+        }
     }
 </div>

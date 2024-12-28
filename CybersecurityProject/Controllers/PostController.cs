@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ganss.Xss;
 using Microsoft.AspNetCore.Identity;
+using CybersecurityProject.Filters;
+
 
 namespace CybersecurityProject.Controllers;
 
@@ -20,6 +22,7 @@ public class PostController : Controller
     }
     
     [Authorize]
+    [ServiceFilter(typeof(Require2FaFilter))]
     [HttpGet]
     public IActionResult AddPost()
     {
@@ -27,6 +30,7 @@ public class PostController : Controller
     }
 
     [Authorize]
+    [ServiceFilter(typeof(Require2FaFilter))]
     [HttpPost]
 public async Task<IActionResult> AddPost(PostViewModel viewModel)
     {

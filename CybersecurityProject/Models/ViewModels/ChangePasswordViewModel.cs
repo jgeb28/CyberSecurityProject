@@ -6,18 +6,15 @@ public class ChangePasswordViewModel
 {
     [Required(ErrorMessage = "Password is required")]
     [DataType(DataType.Password)]
-    [RegularExpression(@"^[a-zA-Z0-9@._-]+$", ErrorMessage = "Invalid characters in field.")]
-    public string OldPassword { get; set; }
+    public required string OldPassword { get; init; }
     [Required(ErrorMessage = "New Password is required")]
     [DataType(DataType.Password)]
-    [RegularExpression(@"^[a-zA-Z0-9@._-]+$", ErrorMessage = "Invalid characters in field.")]
     [Compare("ConfirmPassword", ErrorMessage = "Passwords do not match")]
-    public string NewPassword { get; set; }
+    public required string NewPassword { get; init; }
     [Required(ErrorMessage = "Confirm Password is required")]
-    [RegularExpression(@"^[a-zA-Z0-9@._-]+$", ErrorMessage = "Invalid characters in field.")]
     [DataType(DataType.Password)]
-    public string ConfirmPassword { get; set; }
+    public required string ConfirmPassword { get; init; }
     [Required]
     [RegularExpression(@"^[0-9]+$", ErrorMessage = "Invalid characters in field.")]
-    public string Code { get; set; }
+    public required string Code { get; init; }
 }

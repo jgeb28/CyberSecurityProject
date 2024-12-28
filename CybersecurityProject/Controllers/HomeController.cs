@@ -5,17 +5,17 @@ using CybersecurityProject.Models;
 using CybersecurityProject.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using CybersecurityProject.Filters;
+
 
 namespace CybersecurityProject.Controllers;
 
 public class HomeController : Controller
 {
-    private readonly ILogger<HomeController> _logger;
     private readonly ApplicationDbContext _context;
 
-    public HomeController(ILogger<HomeController> logger, ApplicationDbContext context)
+    public HomeController(ApplicationDbContext context)
     {
-        _logger = logger;
         _context = context;
     }
 
@@ -38,6 +38,7 @@ public class HomeController : Controller
     }
     
     [Authorize]
+    [ServiceFilter(typeof(Require2FaFilter))]
     [HttpGet("/Profile")]
     public IActionResult Profile()
     {

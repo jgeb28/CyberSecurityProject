@@ -1,6 +1,7 @@
 ﻿using System.Security.Cryptography;
-using System.Text;
+using Ganss.Xss;
 using CybersecurityProject.Models;
+using CybersecurityProject.Filters;
 using CybersecurityProject.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -34,15 +35,20 @@ public class AccountController : Controller
     {
         if (ModelState.IsValid)
         {
+            var sanitizer = new HtmlSanitizer();
+            string sanitizedUsername = sanitizer.Sanitize(viewModel.Username);
+            string sanitizedEmail = sanitizer.Sanitize(viewModel.Email);
+
             RSA rsa = RSA.Create(2048);
             var publicKey = rsa.ExportSubjectPublicKeyInfo();
             string publicKeyString = Convert.ToBase64String(publicKey, Base64FormattingOptions.InsertLineBreaks);
             var privateKey = rsa.ExportPkcs8PrivateKey();
             string privateKeyString = Convert.ToBase64String(EncryptRsaKey(privateKey, viewModel.Password), Base64FormattingOptions.InsertLineBreaks);
+            
             User user = new User
             {
-                UserName = viewModel.Username,
-                Email = viewModel.Email,
+                UserName = sanitizedUsername,
+                Email = sanitizedEmail,
                 RsaPublicKey = publicKeyString,
                 RsaPrivateKeyEncrypted = privateKeyString
             };
@@ -51,7 +57,7 @@ public class AccountController : Controller
 
             if (result.Succeeded)
             {
-                return RedirectToAction("Enable2Fa", new { userId = user.Id });
+                return RedirectToAction("Login");
             }
             else
             {
@@ -67,16 +73,18 @@ public class AccountController : Controller
         return View(viewModel);
     }
     
-    [HttpGet] [Route("/Account/Enable2FA/{userId}")]
-    public async Task<IActionResult> Enable2Fa(string userId)
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> Enable2Fa()
     {
-        var user = await _userManager.FindByIdAsync(userId);
+        var user = await _userManager.GetUserAsync(User);
         if (user == null)
         {
-            return NotFound();
+            return BadRequest();
         }
         if (user.TwoFactorEnabled)
         {
+            TempData["Error"] = "Two-factor authentication already is enabled on this Account.";
             return RedirectToAction("Index", "Home");
         }
         else
@@ -88,20 +96,22 @@ public class AccountController : Controller
                 key = await _userManager.GetAuthenticatorKeyAsync(user);
             }
 
-            var model = new Enable2FaViewModel { Key = key, UserId = userId };
+            var model = new Enable2FaViewModel { Key = key, UserId = user.Id };
             return View(model);
         }
     }
+    [Authorize]
     [HttpPost]
-    public async Task<IActionResult> Confirm2FaSetup(string code, string userId)
+    public async Task<IActionResult> Confirm2FaSetup(string code)
     {
-        var user = await _userManager.FindByIdAsync(userId); 
+        var user = await _userManager.GetUserAsync(User); 
         if (user == null)
         {
-            return NotFound();
+            return BadRequest();
         }
         if (user.TwoFactorEnabled)
         {
+            TempData["Error"] = "Two-factor authentication already is enabled on this Account.";
             return RedirectToAction("Index", "Home");
         }
         
@@ -111,13 +121,11 @@ public class AccountController : Controller
         if (!isTokenValid)
         {
             TempData["Error2FA"] = "Invalid code";
-            return RedirectToAction("Enable2Fa", new { userId }); 
+            return RedirectToAction("Enable2Fa", new { user.Id }); 
         }
         
         await _userManager.SetTwoFactorEnabledAsync(user, true);
         
-        await _signInManager.RefreshSignInAsync(user);
-
         return RedirectToAction("Index", "Home"); 
     }
 
@@ -127,7 +135,7 @@ public class AccountController : Controller
         await _signInManager.SignOutAsync();
         return RedirectToAction("Index", "Home");
     }
-
+    [HttpPost]
     public async Task<IActionResult> Login(LoginViewModel viewModel)
     {
         if (ModelState.IsValid)
@@ -143,10 +151,9 @@ public class AccountController : Controller
 
             if (result.Succeeded)
             {
-                await _signInManager.SignOutAsync();
                 if (!user.TwoFactorEnabled)
                 {
-                    return RedirectToAction("Enable2Fa", new { userId = user.Id } );
+                    return RedirectToAction("Enable2Fa");
                 }
                 else
                 {
@@ -259,6 +266,7 @@ public class AccountController : Controller
     }
 
     [Authorize]
+    [ServiceFilter(typeof(Require2FaFilter))]
     [HttpGet]
     public IActionResult ChangePassword()
     {
@@ -266,6 +274,7 @@ public class AccountController : Controller
     }
 
     [Authorize]
+    [ServiceFilter(typeof(Require2FaFilter))]
     [HttpPost]
     public async Task<IActionResult> ChangePassword(ChangePasswordViewModel viewModel)
     {
@@ -306,4 +315,4 @@ public class AccountController : Controller
 
 }
 
-// TO DO: Pomyśleć czy nie przerzucić 2FA po loginie i nie dawać dostępu innym kontom.
+// TO DO: Przemyśleć czy i jak zaszyfrować sekret do 2FA

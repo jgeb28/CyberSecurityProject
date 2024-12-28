@@ -2,7 +2,7 @@
 
 public class Enable2FaViewModel
 {
-    public string Key { get; set; }
-    public string UserId { get; set; }
+    public required string Key { get; init; }
+    public required string UserId { get; init; }
     
 }

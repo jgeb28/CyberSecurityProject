@@ -2,6 +2,6 @@
 
 public class PostDisplayViewModel
 {
-    public Post Post { get; set; }
-    public string AuthorName { get; set; }
+    public required Post Post { get; init; }
+    public required string AuthorName { get; init; }
 }
