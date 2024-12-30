@@ -1,8 +1,8 @@
 ﻿using System.Security.Cryptography;
 using Ganss.Xss;
 using CybersecurityProject.Models;
-using CybersecurityProject.Filters;
 using CybersecurityProject.Models.ViewModels;
+using CybersecurityProject.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -13,11 +13,19 @@ public class AccountController : Controller
 {
     private readonly SignInManager<User> _signInManager;
     private readonly UserManager<User> _userManager;
+    private readonly TotpService _totpService;
+    private readonly AesEncryptionService _aesEncryptionService;
 
-    public AccountController(SignInManager<User> signInManager, UserManager<User> userManager)
+    public AccountController(
+        SignInManager<User> signInManager,
+        UserManager<User> userManager, 
+        TotpService totpService,
+        AesEncryptionService aesEncryptionService)
     {
         _signInManager = signInManager;
         _userManager = userManager;
+        _totpService = totpService;
+        _aesEncryptionService = aesEncryptionService;
     }
     [HttpGet]
     public IActionResult Register()
@@ -43,7 +51,7 @@ public class AccountController : Controller
             var publicKey = rsa.ExportSubjectPublicKeyInfo();
             string publicKeyString = Convert.ToBase64String(publicKey, Base64FormattingOptions.InsertLineBreaks);
             var privateKey = rsa.ExportPkcs8PrivateKey();
-            string privateKeyString = Convert.ToBase64String(EncryptRsaKey(privateKey, viewModel.Password), Base64FormattingOptions.InsertLineBreaks);
+            string privateKeyString = Convert.ToBase64String(_aesEncryptionService.EncryptKey(privateKey, viewModel.Password), Base64FormattingOptions.InsertLineBreaks);
             
             User user = new User
             {
@@ -52,6 +60,7 @@ public class AccountController : Controller
                 RsaPublicKey = publicKeyString,
                 RsaPrivateKeyEncrypted = privateKeyString
             };
+            GenerateSessionHashKey(viewModel.Password);
             
             var result = await _userManager.CreateAsync(user, viewModel.Password);
 
@@ -89,12 +98,15 @@ public class AccountController : Controller
         }
         else
         {
-            var key = await _userManager.GetAuthenticatorKeyAsync(user);
-            if (string.IsNullOrEmpty(key))
-            {
-                await _userManager.ResetAuthenticatorKeyAsync(user);
-                key = await _userManager.GetAuthenticatorKeyAsync(user);
-            }
+            var encryptedSecret = await _userManager.GetAuthenticatorKeyAsync(user);
+            //if (encryptedSecret == null)
+            //{
+                var totpKey = await _userManager.GenerateTwoFactorTokenAsync(user, "MyTotpTokenProvider");
+                await _userManager.SetAuthenticationTokenAsync(user, "[AspNetUserStore]", "AuthenticatorKey", totpKey);
+                encryptedSecret = await _userManager.GetAuthenticatorKeyAsync(user);
+            //}
+            var key = await _totpService.GetDecryptedAuthenticatorKeyAsync(user, encryptedSecret);
+
 
             var model = new Enable2FaViewModel { Key = key, UserId = user.Id };
             return View(model);
@@ -116,7 +128,7 @@ public class AccountController : Controller
         }
         
         var isTokenValid = await _userManager.VerifyTwoFactorTokenAsync(
-            user, _userManager.Options.Tokens.AuthenticatorTokenProvider, code);
+            user, "MyTotpTokenProvider", code);
 
         if (!isTokenValid)
         {
@@ -151,6 +163,7 @@ public class AccountController : Controller
 
             if (result.Succeeded)
             {
+                GenerateSessionHashKey(viewModel.Password);
                 if (!user.TwoFactorEnabled)
                 {
                     return RedirectToAction("Enable2Fa");
@@ -210,61 +223,7 @@ public class AccountController : Controller
             return View(viewModel);
         }
     }
-
-    public byte[] EncryptRsaKey(byte[] rsaKey, string password)
-    {
-        byte[] salt = new byte[16];
-        byte[] iv = new byte[16];
-        using (var rng = RandomNumberGenerator.Create())
-        {
-            rng.GetBytes(salt);
-        }
-        using (var rng = RandomNumberGenerator.Create())
-        {
-            rng.GetBytes(iv);
-        }
-        
-        using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 10_000, HashAlgorithmName.SHA256);
-        byte[] aesKey = pbkdf2.GetBytes(32);
-        using var fileStream = new MemoryStream();
-        using Aes aes = Aes.Create();
-        using CryptoStream cryptStream = new CryptoStream(
-            fileStream, aes.CreateEncryptor(aesKey, iv), CryptoStreamMode.Write);
-        cryptStream.Write(rsaKey, 0, rsaKey.Length); 
-        cryptStream.FlushFinalBlock();
-        
-        byte[] ciphertext = fileStream.ToArray();
-        byte[] encryptedData = new byte[salt.Length + iv.Length + ciphertext.Length];
-        Buffer.BlockCopy(salt, 0, encryptedData, 0, salt.Length);
-        Buffer.BlockCopy(iv, 0, encryptedData, salt.Length, iv.Length);
-        Buffer.BlockCopy(ciphertext, 0, encryptedData, salt.Length + iv.Length, ciphertext.Length);
-
-        return encryptedData;
-    }
     
-    public byte[] DecryptRsaKey(byte[] rsaCipher, string password)
-    {
-        byte[] salt = new byte[16];
-        byte[] iv = new byte[16];
-        byte[] ciphertext = new byte[rsaCipher.Length - salt.Length - iv.Length];
-       
-        Buffer.BlockCopy(rsaCipher, 0, salt, 0, salt.Length);
-        Buffer.BlockCopy(rsaCipher, salt.Length, iv, 0, iv.Length);
-        Buffer.BlockCopy(rsaCipher, salt.Length + iv.Length, ciphertext, 0, ciphertext.Length);
-        
-        using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 10_000, HashAlgorithmName.SHA256);
-        byte[] aesKey = pbkdf2.GetBytes(32);
-        
-        var fileStream = new MemoryStream(ciphertext);
-        using Aes aes = Aes.Create();
-        using CryptoStream cryptStream = new CryptoStream(
-            fileStream, aes.CreateDecryptor(aesKey, iv), CryptoStreamMode.Read);
-        using var decryptedData = new MemoryStream();
-        cryptStream.CopyTo(decryptedData);
-    
-        return decryptedData.ToArray();
-    }
-
     [Authorize]
     [ServiceFilter(typeof(Require2FaFilter))]
     [HttpGet]
@@ -288,8 +247,8 @@ public class AccountController : Controller
         {
             return RedirectToAction("Login");
         }
-        
-        var is2FaValid = await _userManager.VerifyTwoFactorTokenAsync(user, "Authenticator", viewModel.Code);
+        GenerateSessionHashKey(viewModel.OldPassword);
+        var is2FaValid = await _userManager.VerifyTwoFactorTokenAsync(user, "MyTotpTokenProvider", viewModel.Code);
         if (!is2FaValid)
         {
             ModelState.AddModelError("Code", "Invalid code.");
@@ -301,10 +260,16 @@ public class AccountController : Controller
         if (result.Succeeded)
         {
             var rsaEncrypted = Convert.FromBase64String(user.RsaPrivateKeyEncrypted);
-            var rsaDecrypted = DecryptRsaKey(rsaEncrypted, viewModel.OldPassword);
-            var refreshedRsaEncrypted = EncryptRsaKey(rsaDecrypted, viewModel.NewPassword);
+            var rsaDecrypted = _aesEncryptionService.DecryptKey(rsaEncrypted, viewModel.OldPassword);
+            var refreshedRsaEncrypted = _aesEncryptionService.EncryptKey(rsaDecrypted, viewModel.NewPassword);
             user.RsaPrivateKeyEncrypted = Convert.ToBase64String(refreshedRsaEncrypted);
             await _userManager.UpdateAsync(user);
+            GenerateSessionHashKey(viewModel.OldPassword);
+            var encryptedSecret = await _userManager.GetAuthenticatorKeyAsync(user);
+            var secret = await _totpService.GetDecryptedAuthenticatorKeyAsync(user, encryptedSecret);
+            var totpKey = _totpService.RegenerateTotpSecret(secret);
+            await _userManager.SetAuthenticationTokenAsync(user, "[AspNetUserStore]", "AuthenticatorKey", totpKey);
+            
             await _signInManager.RefreshSignInAsync(user); 
             TempData["PasswordChangeSuccess"] = "Your password was changed successfully!";
             return RedirectToAction("Profile", "Home");
@@ -318,6 +283,14 @@ public class AccountController : Controller
         return View(viewModel);
     }
 
+    public void GenerateSessionHashKey(string password)
+    {
+        string saltString = "4pGAhQnhuanN1wMw4W35QA==\n";
+        byte[] salt = Convert.FromBase64String(saltString);
+        using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 100, HashAlgorithmName.SHA256);
+        string hashPassword = Convert.ToBase64String(pbkdf2.GetBytes(32));
+        HttpContext.Session.SetString("HashKey", hashPassword);
+    }
 
 }
 

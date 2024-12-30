@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace CybersecurityProject.Filters;
+namespace CybersecurityProject.Services;
 
 public class Require2FaFilter : Attribute, IAsyncActionFilter
 {

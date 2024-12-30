@@ -1,6 +1,6 @@
 using CybersecurityProject.Data;
-using CybersecurityProject.Filters;
 using CybersecurityProject.Models;
+using CybersecurityProject.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +11,9 @@ builder.Services.AddScoped<Require2FaFilter>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlite(
     builder.Configuration.GetConnectionString("localDb")));
+builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+builder.Services.AddScoped<AesEncryptionService>();
+builder.Services.AddScoped<TotpService>();
 
 builder.Services.AddIdentity<User, IdentityRole>(options =>
 {
@@ -20,8 +23,20 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
     options.User.RequireUniqueEmail = true; 
     options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+    options.Tokens.AuthenticatorTokenProvider = "MyTotpTokenProvider";
+    
 }).AddEntityFrameworkStores<ApplicationDbContext>() 
-.AddDefaultTokenProviders(); 
+    .AddDefaultTokenProviders()
+    .AddTokenProvider<MyTotpTokenProvider>("MyTotpTokenProvider");
+
+
+
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // Set timeout
+    options.Cookie.HttpOnly = true; // Make cookie HTTP only
+    options.Cookie.IsEssential = true; // Make it essential for GDPR compliance
+});
 
 var app = builder.Build();
 
@@ -35,6 +50,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseSession();
 
 app.UseRouting();
 
