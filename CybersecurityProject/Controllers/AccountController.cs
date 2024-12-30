@@ -297,8 +297,14 @@ public class AccountController : Controller
         }
         
         var result = await _userManager.ChangePasswordAsync(user,viewModel.OldPassword,viewModel.NewPassword);
+        
         if (result.Succeeded)
         {
+            var rsaEncrypted = Convert.FromBase64String(user.RsaPrivateKeyEncrypted);
+            var rsaDecrypted = DecryptRsaKey(rsaEncrypted, viewModel.OldPassword);
+            var refreshedRsaEncrypted = EncryptRsaKey(rsaDecrypted, viewModel.NewPassword);
+            user.RsaPrivateKeyEncrypted = Convert.ToBase64String(refreshedRsaEncrypted);
+            await _userManager.UpdateAsync(user);
             await _signInManager.RefreshSignInAsync(user); 
             TempData["PasswordChangeSuccess"] = "Your password was changed successfully!";
             return RedirectToAction("Profile", "Home");

@@ -27,6 +27,8 @@ public class HomeController : Controller
                 Post = p,
                 AuthorName = p.Author.UserName 
             })
+            .OrderByDescending(e => e.Post.Id)
+            .Take(5)
             .ToListAsync();
 
         return View(posts);
