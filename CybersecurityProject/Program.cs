@@ -33,9 +33,9 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
 
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30); // Set timeout
-    options.Cookie.HttpOnly = true; // Make cookie HTTP only
-    options.Cookie.IsEssential = true; // Make it essential for GDPR compliance
+    options.IdleTimeout = TimeSpan.FromMinutes(30); 
+    options.Cookie.HttpOnly = true; 
+    options.Cookie.IsEssential = true; 
 });
 
 var app = builder.Build();

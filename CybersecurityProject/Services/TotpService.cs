@@ -26,12 +26,8 @@ public class TotpService
         
         var secret = KeyGeneration.GenerateRandomKey(16);
         
-        string encryptedSecret = Convert.ToBase64String(_aesEncryptionService.EncryptKey(secret, password));
-        Console.WriteLine($"Encrypted secret length (bytes): {encryptedSecret.Length}");
-        var decodedBytes = Convert.FromBase64String(encryptedSecret);
-        Console.WriteLine($"Decoded length: {decodedBytes.Length}");
-
-        //_httpContextAccessor.HttpContext.Session.Remove("HashKey");
+        string encryptedSecret = Base32Encoding.ToString(_aesEncryptionService.EncryptKey(secret, password));
+       //_httpContextAccessor.HttpContext.Session.Remove("HashKey");
         return encryptedSecret;
     }
     
@@ -42,8 +38,11 @@ public class TotpService
         {
             throw new InvalidOperationException("HashKey not found in session.");
         }
-        
-        string encryptedSecret = Convert.ToBase64String(_aesEncryptionService.EncryptKey(Base32Encoding.ToBytes(secret), password));
+        Console.WriteLine();
+        Console.WriteLine(secret);
+        byte[] secretBytes = Base32Encoding.ToBytes(secret);
+        Console.WriteLine(secretBytes.Length);
+        string encryptedSecret = Base32Encoding.ToString(_aesEncryptionService.EncryptKey(secretBytes, password));
         //_httpContextAccessor.HttpContext.Session.Remove("HashKey");
         return encryptedSecret;
     }
@@ -75,8 +74,13 @@ public class TotpService
             throw new InvalidOperationException("HashKey not found in session.");
         }
 
-        string decryptedKey = Base32Encoding.ToString(_aesEncryptionService.DecryptKey(Convert.FromBase64String(encryptedKey), password));
-
+        var secretbytes = Base32Encoding.ToBytes(encryptedKey);
+        var secret = _aesEncryptionService.DecryptKey(secretbytes, password);
+        Console.WriteLine(secret);
+        string decryptedKey = Base32Encoding.ToString(secret);
+        Console.WriteLine("decryptedKey");
+        Console.WriteLine(decryptedKey);
+        
         return decryptedKey;
     }
 }

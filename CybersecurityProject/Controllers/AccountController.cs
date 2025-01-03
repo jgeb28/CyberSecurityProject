@@ -1,4 +1,5 @@
 ﻿using System.Security.Cryptography;
+using CybersecurityProject.Data;
 using Ganss.Xss;
 using CybersecurityProject.Models;
 using CybersecurityProject.Models.ViewModels;
@@ -6,11 +7,13 @@ using CybersecurityProject.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using OtpNet;
 
 namespace CybersecurityProject.Controllers;
 
 public class AccountController : Controller
 {
+    private readonly ApplicationDbContext _dbContext;
     private readonly SignInManager<User> _signInManager;
     private readonly UserManager<User> _userManager;
     private readonly TotpService _totpService;
@@ -20,12 +23,14 @@ public class AccountController : Controller
         SignInManager<User> signInManager,
         UserManager<User> userManager, 
         TotpService totpService,
-        AesEncryptionService aesEncryptionService)
+        AesEncryptionService aesEncryptionService,
+        ApplicationDbContext dbContext)
     {
         _signInManager = signInManager;
         _userManager = userManager;
         _totpService = totpService;
         _aesEncryptionService = aesEncryptionService;
+        _dbContext = dbContext;
     }
     [HttpGet]
     public IActionResult Register()
@@ -99,12 +104,12 @@ public class AccountController : Controller
         else
         {
             var encryptedSecret = await _userManager.GetAuthenticatorKeyAsync(user);
-            //if (encryptedSecret == null)
-            //{
+            if (encryptedSecret == null)
+            {
                 var totpKey = await _userManager.GenerateTwoFactorTokenAsync(user, "MyTotpTokenProvider");
                 await _userManager.SetAuthenticationTokenAsync(user, "[AspNetUserStore]", "AuthenticatorKey", totpKey);
                 encryptedSecret = await _userManager.GetAuthenticatorKeyAsync(user);
-            //}
+            }
             var key = await _totpService.GetDecryptedAuthenticatorKeyAsync(user, encryptedSecret);
 
 
@@ -176,6 +181,7 @@ public class AccountController : Controller
             }
             if (result.RequiresTwoFactor)
             {
+                GenerateSessionHashKey(viewModel.Password);
                 return RedirectToAction("Login2Fa");
             }
             if (result.IsLockedOut)
@@ -255,32 +261,57 @@ public class AccountController : Controller
             return View(viewModel);
         }
         
-        var result = await _userManager.ChangePasswordAsync(user,viewModel.OldPassword,viewModel.NewPassword);
-        
-        if (result.Succeeded)
+        await using (var transaction = await _dbContext.Database.BeginTransactionAsync())
         {
-            var rsaEncrypted = Convert.FromBase64String(user.RsaPrivateKeyEncrypted);
-            var rsaDecrypted = _aesEncryptionService.DecryptKey(rsaEncrypted, viewModel.OldPassword);
-            var refreshedRsaEncrypted = _aesEncryptionService.EncryptKey(rsaDecrypted, viewModel.NewPassword);
-            user.RsaPrivateKeyEncrypted = Convert.ToBase64String(refreshedRsaEncrypted);
-            await _userManager.UpdateAsync(user);
-            GenerateSessionHashKey(viewModel.OldPassword);
-            var encryptedSecret = await _userManager.GetAuthenticatorKeyAsync(user);
-            var secret = await _totpService.GetDecryptedAuthenticatorKeyAsync(user, encryptedSecret);
-            var totpKey = _totpService.RegenerateTotpSecret(secret);
-            await _userManager.SetAuthenticationTokenAsync(user, "[AspNetUserStore]", "AuthenticatorKey", totpKey);
-            
-            await _signInManager.RefreshSignInAsync(user); 
-            TempData["PasswordChangeSuccess"] = "Your password was changed successfully!";
-            return RedirectToAction("Profile", "Home");
-        }
+            try
+            {
+                var result = await _userManager.ChangePasswordAsync(user, viewModel.OldPassword, viewModel.NewPassword);
+                if (!result.Succeeded)
+                {
+                    foreach (var error in result.Errors)
+                    {
+                        ModelState.AddModelError(string.Empty, error.Description);
+                    }
+                    return View(viewModel);
+                }
 
-        foreach (var error in result.Errors)
-        {
-            ModelState.AddModelError(string.Empty, error.Description);
-        }
+                var rsaEncrypted = Convert.FromBase64String(user.RsaPrivateKeyEncrypted);
+                var rsaDecrypted = _aesEncryptionService.DecryptKey(rsaEncrypted, viewModel.OldPassword);
+                var refreshedRsaEncrypted = _aesEncryptionService.EncryptKey(rsaDecrypted, viewModel.NewPassword);
+                user.RsaPrivateKeyEncrypted = Convert.ToBase64String(refreshedRsaEncrypted);
 
-        return View(viewModel);
+                await _userManager.UpdateAsync(user);
+
+                var encryptedSecret = await _userManager.GetAuthenticatorKeyAsync(user);
+                GenerateSessionHashKey(viewModel.OldPassword);
+                var secret = await _totpService.GetDecryptedAuthenticatorKeyAsync(user, encryptedSecret);
+                HttpContext.Session.Remove("HashKey");
+                GenerateSessionHashKey(viewModel.NewPassword);
+                Console.WriteLine(secret);
+                var totpKey = _totpService.RegenerateTotpSecret(secret);
+                var secretconsole = await _totpService.GetDecryptedAuthenticatorKeyAsync(user, totpKey);
+                Console.WriteLine("Zrobiony Nowy:");
+                Console.WriteLine(secretconsole);
+                await _userManager.SetAuthenticationTokenAsync(user, "[AspNetUserStore]", "AuthenticatorKey", totpKey);
+                Console.WriteLine("Po setcie");
+                var encryptedSecret2 = await _userManager.GetAuthenticatorKeyAsync(user);
+                var secret2 = await _totpService.GetDecryptedAuthenticatorKeyAsync(user, encryptedSecret2);
+                Console.WriteLine(secret2);
+                HttpContext.Session.Remove("HashKey");
+
+                await transaction.CommitAsync();
+
+                await _signInManager.RefreshSignInAsync(user);
+                TempData["PasswordChangeSuccess"] = "Your password was changed successfully!";
+                return RedirectToAction("Profile", "Home");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                ModelState.AddModelError(string.Empty, ex.Message);
+                return View(viewModel);
+            }
+        }
     }
 
     public void GenerateSessionHashKey(string password)
