@@ -286,17 +286,10 @@ public class AccountController : Controller
                 GenerateSessionHashKey(viewModel.OldPassword);
                 var secret = await _totpService.GetDecryptedAuthenticatorKeyAsync(user, encryptedSecret);
                 HttpContext.Session.Remove("HashKey");
+                
                 GenerateSessionHashKey(viewModel.NewPassword);
-                Console.WriteLine(secret);
                 var totpKey = _totpService.RegenerateTotpSecret(secret);
-                var secretconsole = await _totpService.GetDecryptedAuthenticatorKeyAsync(user, totpKey);
-                Console.WriteLine("Zrobiony Nowy:");
-                Console.WriteLine(secretconsole);
                 await _userManager.SetAuthenticationTokenAsync(user, "[AspNetUserStore]", "AuthenticatorKey", totpKey);
-                Console.WriteLine("Po setcie");
-                var encryptedSecret2 = await _userManager.GetAuthenticatorKeyAsync(user);
-                var secret2 = await _totpService.GetDecryptedAuthenticatorKeyAsync(user, encryptedSecret2);
-                Console.WriteLine(secret2);
                 HttpContext.Session.Remove("HashKey");
 
                 await transaction.CommitAsync();
@@ -308,7 +301,7 @@ public class AccountController : Controller
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                ModelState.AddModelError(string.Empty, ex.Message);
+                ModelState.AddModelError(string.Empty, "An error occurred while updating your credentials. Please try again.");
                 return View(viewModel);
             }
         }
@@ -325,4 +318,4 @@ public class AccountController : Controller
 
 }
 
-// TO DO: Przemyśleć czy i jak zaszyfrować sekret do 2FA
+// Do zapamiętania jeżeli opcja z sesją nie będzie poprawna spróbuj zapisywać w bazie z określoną długością życio i dorób serwis który zo 5 min będzie usuwał przedawnione hashe

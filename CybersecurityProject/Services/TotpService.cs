@@ -18,69 +18,61 @@ public class TotpService
     }
     public string GenerateTotpSecret()
     {
-        var password =_httpContextAccessor.HttpContext.Session.GetString("HashKey");
+        var password =_httpContextAccessor.HttpContext?.Session.GetString("HashKey");
         if (password == null)
         {
             throw new InvalidOperationException("HashKey not found in session.");
         }
         
-        var secret = KeyGeneration.GenerateRandomKey(16);
+        var secretBytes = KeyGeneration.GenerateRandomKey(16);
         
-        string encryptedSecret = Base32Encoding.ToString(_aesEncryptionService.EncryptKey(secret, password));
-       //_httpContextAccessor.HttpContext.Session.Remove("HashKey");
+        string encryptedSecret = Base32Encoding.ToString(_aesEncryptionService.EncryptKey(secretBytes, password));
         return encryptedSecret;
     }
     
     public string RegenerateTotpSecret(string secret)
     {
-        var password =_httpContextAccessor.HttpContext.Session.GetString("HashKey");
+        var password =_httpContextAccessor.HttpContext?.Session.GetString("HashKey");
         if (password == null)
         {
             throw new InvalidOperationException("HashKey not found in session.");
         }
-        Console.WriteLine();
-        Console.WriteLine(secret);
+        
         byte[] secretBytes = Base32Encoding.ToBytes(secret);
-        Console.WriteLine(secretBytes.Length);
         string encryptedSecret = Base32Encoding.ToString(_aesEncryptionService.EncryptKey(secretBytes, password));
-        //_httpContextAccessor.HttpContext.Session.Remove("HashKey");
         return encryptedSecret;
     }
 
     public async Task<bool> ValidateTotp(User user, UserManager<User> manager, string token)
     {
-        var encryptedKey = await manager.GetAuthenticatorKeyAsync(user);
-        var secret = await GetDecryptedAuthenticatorKeyAsync(user, encryptedKey);
-        var secretKey = Base32Encoding.ToBytes(secret);
-        var totp = new Totp(secretKey);
-        _httpContextAccessor.HttpContext.Session.Remove("HashKey");
+        var encryptedSecret = await manager.GetAuthenticatorKeyAsync(user);
+        var secret = await GetDecryptedAuthenticatorKeyAsync(user, encryptedSecret);
+        var secretBytes = Base32Encoding.ToBytes(secret);
+        var totp = new Totp(secretBytes);
+        
+        _httpContextAccessor.HttpContext?.Session.Remove("HashKey");
+        
         return totp.VerifyTotp(token, out long timeStepMatched);
     }
     
-    public async Task<string> GetDecryptedAuthenticatorKeyAsync(User user, string encryptedKey)
+    public Task<string> GetDecryptedAuthenticatorKeyAsync(User user, string encryptedSecret)
     {
-        if (string.IsNullOrEmpty(encryptedKey))
+        if (string.IsNullOrEmpty(encryptedSecret))
         {
             throw new InvalidOperationException("Authenticator key not found.");
         }
 
-        var password = _httpContextAccessor.HttpContext.Session.GetString("HashKey");
-        if (_httpContextAccessor == null)
-        {
-            throw new InvalidOperationException("Pain.");
-        }
+        var password = _httpContextAccessor.HttpContext?.Session.GetString("HashKey");
+        
         if (string.IsNullOrEmpty(password))
         {
             throw new InvalidOperationException("HashKey not found in session.");
         }
 
-        var secretbytes = Base32Encoding.ToBytes(encryptedKey);
-        var secret = _aesEncryptionService.DecryptKey(secretbytes, password);
-        Console.WriteLine(secret);
-        string decryptedKey = Base32Encoding.ToString(secret);
-        Console.WriteLine("decryptedKey");
-        Console.WriteLine(decryptedKey);
+        var encryptedSecretBytes = Base32Encoding.ToBytes(encryptedSecret);
+        var secretBytes = _aesEncryptionService.DecryptKey(encryptedSecretBytes, password);
+        string secret = Base32Encoding.ToString(secretBytes);
         
-        return decryptedKey;
+        return Task.FromResult(secret);
     }
 }
