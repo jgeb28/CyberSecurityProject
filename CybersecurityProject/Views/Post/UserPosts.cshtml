@@ -1,0 +1,44 @@
+@model CybersecurityProject.Models.ViewModels.UserPostsViewModel
+
+@{
+    ViewBag.Title = Model.Username + " Page";
+    Layout = "_Layout";
+}
+@if (TempData["Success"] != null)
+{
+    <p class="alert-success">@TempData["Success"]</p>
+}
+<div class="d-flex flex-column">
+    <span>@Model.Username</span>
+    <span>@Model.PublicRsaKey</span>
+</div>
+<div class="d-flex w-100 flex-column align-items-center">
+    <h1 class="mb-4">Posts</h1>
+    @if (!Model.Posts.Any())
+    {
+        <p>No posts available.</p>
+    }
+    else
+    {
+        @foreach (var post in Model.Posts)
+        {
+            <div class="w-50 col-12 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">@post.Title</h5>
+                        <p class="card-subtitle mb-1">Author:@Model.Username</p>
+                        <div class="card-group">
+                            @Html.Raw(post.Content)
+                        </div>
+                    </div>
+                    @if(User.Identity.Name == Model.Username) {
+                        <form asp-action="DeletePost" method="post">
+                            <input type="hidden" name="postId" value="@post.Id" />
+                            <button type="submit" class="btn btn-outline-warning">Delete</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
