@@ -3,16 +3,27 @@
     container_name: aspnet-app
     ports:
       - 8080:8080
+      - 8081:8081
     build:
       context: .
       dockerfile: CybersecurityProject/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:8081;http://+:8080
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=password
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/selfsigned.pfx
+    volumes:
+      - ./https:/https:ro
+
     image: cybersecurityproject-aspnet-app
+    
     
   
   nginx:
     container_name: nginx
     ports:
       - 80:80
+      - 443:443
     build:
       context: .
       dockerfile: Nginx/Dockerfile
