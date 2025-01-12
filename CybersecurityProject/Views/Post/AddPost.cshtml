@@ -20,6 +20,15 @@
                 <textarea asp-for="Content" class="form-control" id="richTextEditor"></textarea>
                 <span asp-validation-for="Content" class="text-danger"></span>
             </div>
+            <div class="mb-3">
+                <label asp-for="IsVerified" class="form-check-label">Verify?</label>
+                <input asp-for="IsVerified" class="form-check-input" type="checkbox"/>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label">Password</label>
+                <input asp-for="Password" type="password" class="form-control"/>
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>
     </div>
@@ -41,4 +50,21 @@
         });
 
     </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const checkbox = document.querySelector('input[name="IsVerified"]');
+            const passwordInputDiv = document.querySelector('input[name="Password"]').closest('.mb-3');
+
+            passwordInputDiv.style.display = "none";
+
+            checkbox.addEventListener("change", function() {
+                if (checkbox.checked) {
+                    passwordInputDiv.style.display = "block";
+                } else {
+                    passwordInputDiv.style.display = "none";
+                }
+            });
+        });
+    </script>
+
 }

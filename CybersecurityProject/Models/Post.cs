@@ -13,5 +13,10 @@ public class Post
     [Required] [StringLength(3000)]
     public required string Content { get; set; }
     
+    public required bool IsVerified { get; set; }
+    
+    [StringLength(3000)]
+    public string? RsaSignature { get; set; }
+    
     public required User Author { get; set; }
 }

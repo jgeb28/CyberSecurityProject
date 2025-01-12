@@ -50,8 +50,6 @@ public class TotpService
         var secretBytes = Base32Encoding.ToBytes(secret);
         var totp = new Totp(secretBytes);
         
-        _httpContextAccessor.HttpContext?.Session.Remove("HashKey");
-        
         return totp.VerifyTotp(token, out long timeStepMatched);
     }
     
