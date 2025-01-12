@@ -19,12 +19,14 @@
             <div class="w-50 col-12 mb-4">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">@post.Post.Title</h5>
-                        @if (post.Post.IsVerified)
-                        {
-                            <span class="align-self-end text-success">Verified</span>
-                        }
-                        <p class="card-subtitle mb-1">Author:@post.AuthorName</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title">@post.Post.Title</h5>
+                            @if (post.Post.IsVerified)
+                            {
+                                <span class="align-self-end text-success mb-2">Verified</span>
+                            }
+                        </div>
+                        <p class="card-subtitle mb-1"><a asp-controller="Post" asp-action="UserPosts" asp-route-username="@post.AuthorName">@post.AuthorName</a></p>
                         <div class="card-group">
                             @Html.Raw(post.Post.Content)
                         </div>

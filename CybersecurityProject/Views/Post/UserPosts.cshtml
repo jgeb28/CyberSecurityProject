@@ -1,3 +1,5 @@
+@using System.Web
+@using Microsoft.AspNetCore.Mvc.TagHelpers
 @model CybersecurityProject.Models.ViewModels.UserPostsViewModel
 
 @{
@@ -6,13 +8,25 @@
 }
 @if (TempData["Success"] != null)
 {
-    <p class="alert-success">@TempData["Success"]</p>
+    <p class="alert alert-success">@TempData["Success"]</p>
 }
-<div class="d-flex flex-column">
-    <span>@Model.Username</span>
-    <span>@Model.PublicRsaKey</span>
-</div>
 <div class="d-flex w-100 flex-column align-items-center">
+    <h1 class="mb-4">Profile</h1>
+    <div class="d-flex w-75 flex-column border rounded p-4 mb-4">
+        <label class="form-label">Username:</label>
+        <span>@Model.Username</span>
+
+        <button class="btn btn-outline-primary mt-2" type="button"
+                data-bs-toggle="collapse" data-bs-target="#rsaKey"
+                aria-expanded="false" aria-controls="rsaKey" style="width: 200px">
+            Check RSA Public Key
+        </button>
+
+        <div class="collapse mt-2" id="rsaKey">
+            <label class="flex-label">Rsa Public Key:</label>
+            <pre>@Model.PublicRsaKey</pre>
+        </div>
+    </div>
     <h1 class="mb-4">Posts</h1>
     @if (!Model.Posts.Any())
     {
@@ -25,18 +39,47 @@
             <div class="w-50 col-12 mb-4">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">@post.Title</h5>
-                        <p class="card-subtitle mb-1">Author:@Model.Username</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title">@post.Title</h5>
+                            @if (post.IsVerified)
+                            {
+                                <div class="d-flex flex-column">
+                                    <span class="align-self-end text-success mb-2">Verified</span>
+                                    <button class="btn btn-outline-primary" data-bs-toggle="modal"
+                                            data-bs-target="#signatureModal-@post.Id">Check Signature</button>
+                                </div>
+                            }
+                        </div>
+                        <p class="card-subtitle mb-1"><a asp-controller="Post" asp-action="UserPosts" asp-route-username="@post.Author">@post.Author</a></p>
                         <div class="card-group">
                             @Html.Raw(post.Content)
                         </div>
                     </div>
-                    @if(User.Identity.Name == Model.Username) {
-                        <form asp-action="DeletePost" method="post">
-                            <input type="hidden" name="postId" value="@post.Id" />
-                            <button type="submit" class="btn btn-outline-warning">Delete</button>
-                        </form>
+                    @if (User.Identity.Name == Model.Username)
+                    {
+                        <div class="d-flex justify-content-end m-3">
+                            <form asp-action="DeletePost" method="post">
+                                <input type="hidden" name="postId" value="@post.Id"/>
+                                <button type="submit" class="btn btn-outline-danger">Delete</button>
+                            </form>
+                        </div>
                     }
+                </div>
+            </div>
+            <div class="modal fade" id="signatureModal-@post.Id" tabindex="-1" aria-labelledby="signatureModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="signatureModalLabel">RSA Signature for Post: @post.Title</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p><strong>Signature:</strong></p>
+                            <pre>@post.RsaSignature</pre>
+                            <p><strong>Content:</strong></p>
+                            <pre>@Html.Raw(HttpUtility.HtmlEncode(post.Content.TrimEnd('\n')))\n</pre>
+                        </div>
+                    </div>
                 </div>
             </div>
         }

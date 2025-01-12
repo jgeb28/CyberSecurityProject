@@ -64,7 +64,6 @@ public class PostController : Controller
         string signature = "";
         bool verified = false;
         var sanitizer = new HtmlSanitizer();
-        sanitizer.AllowedSchemes.Add("data");
         sanitizer.AllowedAttributes.Add("style");
         sanitizer.AllowedCssProperties.Add("width");
         sanitizer.AllowedCssProperties.Add("height");
@@ -89,8 +88,14 @@ public class PostController : Controller
                 return View(viewModel);
             }
 
-            signature = Convert.ToBase64String(signatureBytes);
+            signature = Convert.ToBase64String(signatureBytes, Base64FormattingOptions.InsertLineBreaks);
             verified = true;
+            Console.WriteLine("RSA");
+            Console.WriteLine(signature);
+            Console.WriteLine("");
+            Console.WriteLine(user.RsaPublicKey);
+            Console.WriteLine("");
+            Console.WriteLine(sanitized);
 
         }
 
