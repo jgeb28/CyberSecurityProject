@@ -44,6 +44,7 @@ public class AccountController : Controller
     }
     
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel viewModel)
     {
         if (ModelState.IsValid)
@@ -52,12 +53,11 @@ public class AccountController : Controller
             string sanitizedUsername = sanitizer.Sanitize(viewModel.Username);
             string sanitizedEmail = sanitizer.Sanitize(viewModel.Email);
 
-            RSA rsa = RSA.Create(2048);
+            using RSA rsa = RSA.Create(2048);
             var publicKey = rsa.ExportSubjectPublicKeyInfo();
             string publicKeyString = Convert.ToBase64String(publicKey, Base64FormattingOptions.InsertLineBreaks);
             var privateKey = rsa.ExportPkcs8PrivateKey();
             string privateKeyString = Convert.ToBase64String(_aesEncryptionService.EncryptKey(privateKey, viewModel.Password), Base64FormattingOptions.InsertLineBreaks);
-            
             User user = new User
             {
                 UserName = sanitizedUsername,
@@ -119,6 +119,7 @@ public class AccountController : Controller
     }
     [Authorize]
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Confirm2FaSetup(string code)
     {
         var user = await _userManager.GetUserAsync(User); 
@@ -141,6 +142,7 @@ public class AccountController : Controller
             return RedirectToAction("Enable2Fa", new { user.Id }); 
         }
         
+        HttpContext.Session.Remove("HashKey");
         await _userManager.SetTwoFactorEnabledAsync(user, true);
         
         return RedirectToAction("Index", "Home"); 
@@ -204,6 +206,7 @@ public class AccountController : Controller
         return View();
     }
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login2Fa(Login2FaViewModel viewModel)
     {
         if (Request.Cookies["Identity.TwoFactorUserId"] == null)
@@ -217,10 +220,12 @@ public class AccountController : Controller
 
         if (result.Succeeded)
         {
+            HttpContext.Session.Remove("HashKey");
             return RedirectToAction("Index", "Home");
         }
         else if (result.IsLockedOut)
         {
+            HttpContext.Session.Remove("HashKey");
             return RedirectToPage("./Lockout");
         }
         else
@@ -241,6 +246,7 @@ public class AccountController : Controller
     [Authorize]
     [ServiceFilter(typeof(Require2FaFilter))]
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ChangePassword(ChangePasswordViewModel viewModel)
     {
         if (!ModelState.IsValid)

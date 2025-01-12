@@ -20,6 +20,10 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">@post.Post.Title</h5>
+                        @if (post.Post.IsVerified)
+                        {
+                            <span class="align-self-end text-success">Verified</span>
+                        }
                         <p class="card-subtitle mb-1">Author:@post.AuthorName</p>
                         <div class="card-group">
                             @Html.Raw(post.Post.Content)

@@ -11,4 +11,11 @@ public class PostViewModel
     [Required(ErrorMessage = "Content is required.")][StringLength(3000, ErrorMessage = "Your content is to big, consider adding smaller file or less text.")]
     public required string Content { get; init; }
     
+    [DataType(DataType.Password)]
+    public string? Password { get; init; }
+    
+    public required bool IsVerified { get; init; }
+    
+    
+    
 }

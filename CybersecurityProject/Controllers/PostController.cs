@@ -1,4 +1,6 @@
-﻿using CybersecurityProject.Data;
+﻿using System.Security.Cryptography;
+using System.Text;
+using CybersecurityProject.Data;
 using CybersecurityProject.Models;
 using CybersecurityProject.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -15,11 +17,13 @@ public class PostController : Controller
 {
     private readonly ApplicationDbContext _context;
     private readonly UserManager<User> _userManager;
+    private readonly AesEncryptionService _encryptionService;
 
-    public PostController(ApplicationDbContext context, UserManager<User> userManager)
+    public PostController(ApplicationDbContext context, UserManager<User> userManager, AesEncryptionService encryptionService)
     {
         _context = context;
         _userManager = userManager;
+        _encryptionService = encryptionService;
     }
     
     [Authorize]
@@ -33,6 +37,7 @@ public class PostController : Controller
     [Authorize]
     [ServiceFilter(typeof(Require2FaFilter))]
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddPost(PostViewModel viewModel)
     {
         if (!ModelState.IsValid)
@@ -45,6 +50,19 @@ public class PostController : Controller
         {
             return BadRequest();
         }
+
+        if (viewModel.IsVerified == true)
+        {
+            if (!await _userManager.CheckPasswordAsync(user, viewModel.Password))
+            {
+                // Pomyśl o lockdownie
+                ModelState.AddModelError("Password", "Incorrect password.");
+                return View(viewModel);
+            }
+        }
+
+        string signature = "";
+        bool verified = false;
         var sanitizer = new HtmlSanitizer();
         sanitizer.AllowedSchemes.Add("data");
         sanitizer.AllowedAttributes.Add("style");
@@ -52,13 +70,39 @@ public class PostController : Controller
         sanitizer.AllowedCssProperties.Add("height");
         var sanitized = sanitizer.Sanitize(viewModel.Content);
 
+        if (viewModel.IsVerified == true)
+        {
+            var rsaEncrypted = user.RsaPrivateKeyEncrypted;
+            var rsaDecrypted =
+                _encryptionService.DecryptKey(Convert.FromBase64String(rsaEncrypted), viewModel.Password);
+            using var rsa = RSA.Create();
+
+            rsa.ImportPkcs8PrivateKey(rsaDecrypted, out _);
+            byte[] data = Encoding.UTF8.GetBytes(sanitized);
+
+            byte[] signatureBytes = rsa.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            rsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(user.RsaPublicKey), out _);
+            bool isVerified = rsa.VerifyData(data, signatureBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            if (!isVerified)
+            {
+                ModelState.AddModelError(string.Empty, "Something went wrong.");
+                return View(viewModel);
+            }
+
+            signature = Convert.ToBase64String(signatureBytes);
+            verified = true;
+
+        }
+
         Post post = new Post
         {
             Title = viewModel.Title,
             Content = sanitized,
-            Author = user 
+            Author = user,
+            IsVerified = verified,
+            RsaSignature = signature
         };
-        
+
         _context.Posts.Add(post);
         await _context.SaveChangesAsync();
         
@@ -88,6 +132,7 @@ public class PostController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeletePost(string postId)
     {
         var post = await _context.Posts
