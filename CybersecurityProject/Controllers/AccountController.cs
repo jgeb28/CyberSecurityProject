@@ -57,7 +57,7 @@ public class AccountController : Controller
             var publicKey = rsa.ExportSubjectPublicKeyInfo();
             string publicKeyString = Convert.ToBase64String(publicKey, Base64FormattingOptions.InsertLineBreaks);
             var privateKey = rsa.ExportPkcs8PrivateKey();
-            string privateKeyString = Convert.ToBase64String(_aesEncryptionService.EncryptKey(privateKey, viewModel.Password), Base64FormattingOptions.InsertLineBreaks);
+            string privateKeyString = Convert.ToBase64String(_aesEncryptionService.EncryptKey(privateKey, viewModel.Password));
             User user = new User
             {
                 UserName = sanitizedUsername,
