@@ -188,7 +188,7 @@ public class AccountController : Controller
             }
             if (result.IsLockedOut)
             {
-                return RedirectToPage("./Lockout");
+                return RedirectToAction("Lockout", "Home");
             }
             else
             {
@@ -209,7 +209,7 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login2Fa(Login2FaViewModel viewModel)
     {
-        if (Request.Cookies["Identity.TwoFactorUserId"] == null)
+        if (Request.Cookies["Identity.TwoFactorUserId"] == null || HttpContext.Session.GetString("HashKey") == null)
         {
             return RedirectToAction("Login");
         }
@@ -217,7 +217,6 @@ public class AccountController : Controller
             viewModel.Code, 
             false, 
             false);
-
         if (result.Succeeded)
         {
             HttpContext.Session.Remove("HashKey");
@@ -226,7 +225,7 @@ public class AccountController : Controller
         else if (result.IsLockedOut)
         {
             HttpContext.Session.Remove("HashKey");
-            return RedirectToPage("./Lockout");
+            return RedirectToAction("Lockout" ,"Home");
         }
         else
         {
@@ -324,4 +323,3 @@ public class AccountController : Controller
 
 }
 
-// Do zapamiętania jeżeli opcja z sesją nie będzie poprawna spróbuj zapisywać w bazie z określoną długością życio i dorób serwis który zo 5 min będzie usuwał przedawnione hashe

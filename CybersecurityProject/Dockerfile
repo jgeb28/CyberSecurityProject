@@ -20,7 +20,5 @@ RUN dotnet publish "CybersecurityProject.csproj" -c $BUILD_CONFIGURATION -o /app
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-# Copying databse file to published project ,maybe temporary decision
-COPY ./CybersecurityProject/database.db /app/database.db
 
 ENTRYPOINT ["dotnet", "CybersecurityProject.dll"]

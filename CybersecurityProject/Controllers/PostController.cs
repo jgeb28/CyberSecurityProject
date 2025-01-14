@@ -55,7 +55,6 @@ public class PostController : Controller
         {
             if (!await _userManager.CheckPasswordAsync(user, viewModel.Password))
             {
-                // Pomyśl o lockdownie
                 ModelState.AddModelError("Password", "Incorrect password.");
                 return View(viewModel);
             }
@@ -64,9 +63,6 @@ public class PostController : Controller
         string signature = "";
         bool verified = false;
         var sanitizer = new HtmlSanitizer();
-        sanitizer.AllowedAttributes.Add("style");
-        sanitizer.AllowedCssProperties.Add("width");
-        sanitizer.AllowedCssProperties.Add("height");
         var sanitized = sanitizer.Sanitize(viewModel.Content);
 
         if (viewModel.IsVerified == true)
@@ -124,7 +120,7 @@ public class PostController : Controller
         }
         
         var posts = _context.Posts.Select(post => post)
-            .Where(post => post.Author == user)
+            .Where(post => post.Author == user).OrderByDescending(post => post.Id)
             .ToList();
         UserPostsViewModel viewModel = new UserPostsViewModel
         {
