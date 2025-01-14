@@ -14,6 +14,7 @@
       - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/selfsigned.pfx
     volumes:
       - ./https:/https:ro
+      - ./CybersecurityProject/database.db:/app/database.db
 
     image: cybersecurityproject-aspnet-app
     

@@ -61,7 +61,6 @@ public class TotpService
         }
 
         var password = _httpContextAccessor.HttpContext?.Session.GetString("HashKey");
-        
         if (string.IsNullOrEmpty(password))
         {
             throw new InvalidOperationException("HashKey not found in session.");
