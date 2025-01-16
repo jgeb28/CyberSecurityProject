@@ -27,7 +27,7 @@
                             }
                         </div>
                         <p class="card-subtitle mb-1"><a asp-controller="Post" asp-action="UserPosts" asp-route-username="@post.AuthorName">@post.AuthorName</a></p>
-                        <div class="card-group">
+                        <div class="card-group flex-column">
                             @Html.Raw(post.Post.Content)
                         </div>
                     </div>

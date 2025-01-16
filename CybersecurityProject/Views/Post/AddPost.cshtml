@@ -8,7 +8,7 @@
 <div class="d-flex w-100 justify-content-center">
     <div class="w-50 border rounded p-4">
         <h2>Add Post</h2>
-        <form asp-action="AddPost" method="post" enctype="multipart/form-data">
+        <form asp-action="AddPost" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="mb-3">
                 <label asp-for="Title" class="form-label">Title</label>
@@ -17,12 +17,12 @@
             </div>
             <div class="mb-3">
                 <label asp-for="Content" class="form-label">Content</label>
-                <textarea asp-for="Content" class="form-control" id="richTextEditor"></textarea>
+                <textarea asp-for="Content" class="form-control textarea-height"></textarea>
                 <span asp-validation-for="Content" class="text-danger"></span>
             </div>
             <div class="mb-3">
                 <label asp-for="IsVerified" class="form-check-label">Verify?</label>
-                <input asp-for="IsVerified" class="form-check-input" type="checkbox"/>
+                <input asp-for="IsVerified" class="" type="checkbox"/>
             </div>
             <div class="mb-3">
                 <label asp-for="Password" class="form-label">Password</label>
@@ -35,38 +35,5 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/ckeditor_4.22.1_c28f13b87d78/ckeditor/ckeditor.js"></script>
-    <script>
-        CKEDITOR.replace( 'richTextEditor', {
-            extraPlugins: 'image,basicstyles,list', 
-            allowedContent: `
-                img[!src,alt,width,height]; 
-                strong em u s; 
-                b i ul ol li;`, 
-            disallowedContent: 'img{*}',
-            toolbar: [
-                { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike'] }, 
-                { name: 'paragraph', items: ['NumberedList', 'BulletedList'] },
-                { name: 'insert', items: ['Image'] }
-            ],
-        });
-
-    </script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const checkbox = document.querySelector('input[name="IsVerified"]');
-            const passwordInputDiv = document.querySelector('input[name="Password"]').closest('.mb-3');
-
-            passwordInputDiv.style.display = "none";
-
-            checkbox.addEventListener("change", function() {
-                if (checkbox.checked) {
-                    passwordInputDiv.style.display = "block";
-                } else {
-                    passwordInputDiv.style.display = "none";
-                }
-            });
-        });
-    </script>
-
+    <script src="~/js/toggle_verification.js"></script>
 }

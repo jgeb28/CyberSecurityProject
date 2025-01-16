@@ -16,9 +16,9 @@
         <label class="form-label">Username:</label>
         <span>@Model.Username</span>
 
-        <button class="btn btn-outline-primary mt-2" type="button"
+        <button class="btn btn-outline-primary mt-2 rsa-btn" type="button"
                 data-bs-toggle="collapse" data-bs-target="#rsaKey"
-                aria-expanded="false" aria-controls="rsaKey" style="width: 200px">
+                aria-expanded="false" aria-controls="rsaKey">
             Check RSA Public Key
         </button>
 
@@ -51,7 +51,7 @@
                             }
                         </div>
                         <p class="card-subtitle mb-1"><a asp-controller="Post" asp-action="UserPosts" asp-route-username="@post.Author">@post.Author</a></p>
-                        <div class="card-group">
+                        <div class="card-group flex-column">
                             @Html.Raw(post.Content)
                         </div>
                     </div>
