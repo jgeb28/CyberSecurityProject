@@ -9,7 +9,7 @@ using Ganss.Xss;
 using Microsoft.AspNetCore.Identity;
 using CybersecurityProject.Services;
 using Microsoft.EntityFrameworkCore;
-
+using Markdig;
 
 namespace CybersecurityProject.Controllers;
 
@@ -59,11 +59,11 @@ public class PostController : Controller
                 return View(viewModel);
             }
         }
-
+        string markdown = Markdown.ToHtml(viewModel.Content);
         string signature = "";
         bool verified = false;
         var sanitizer = new HtmlSanitizer();
-        var sanitized = sanitizer.Sanitize(viewModel.Content);
+        var sanitized = sanitizer.Sanitize(markdown);
 
         if (viewModel.IsVerified == true)
         {
@@ -109,7 +109,8 @@ public class PostController : Controller
         
         return RedirectToAction("Index", "Home");
     }
-
+    [Authorize]
+    [ServiceFilter(typeof(Require2FaFilter))]
     [HttpGet("/{username}")]
     public async Task<IActionResult> UserPosts(string username)
     {
@@ -131,7 +132,8 @@ public class PostController : Controller
 
         return View(viewModel);
     }
-
+    [Authorize]
+    [ServiceFilter(typeof(Require2FaFilter))]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeletePost(string postId)

@@ -25,3 +25,15 @@ img {
   max-height: 300px;
   max-width: 300px;
 }
+
+.textarea-height {
+  height: 500px;
+}
+
+.rsa-btn {
+  max-width: 200px;
+}
+
+.profile-btn  {
+  width: 10rem;
+}
