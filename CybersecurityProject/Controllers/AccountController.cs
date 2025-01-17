@@ -148,7 +148,7 @@ public class AccountController : Controller
         return RedirectToAction("Index", "Home"); 
     }
 
-    [HttpGet]
+    [HttpPost]
     public async Task<IActionResult> Logout()
     {
         await _signInManager.SignOutAsync();
@@ -316,7 +316,7 @@ public class AccountController : Controller
     {
         string saltString = "4pGAhQnhuanN1wMw4W35QA==\n";
         byte[] salt = Convert.FromBase64String(saltString);
-        using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 100, HashAlgorithmName.SHA256);
+        using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 10_000, HashAlgorithmName.SHA256);
         string hashPassword = Convert.ToBase64String(pbkdf2.GetBytes(32));
         HttpContext.Session.SetString("HashKey", hashPassword);
     }

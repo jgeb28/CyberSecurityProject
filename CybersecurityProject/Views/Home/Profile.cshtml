@@ -8,7 +8,9 @@
         <h2 class="text-center mb-3">Hi @User.Identity.Name!</h2>
         <a asp-controller="Account" asp-action="ChangePassword" class="btn btn-primary mb-3 profile-btn ">Change Password</a>
         <a asp-controller="Post" asp-action="AddPost" class="btn btn-primary mb-3 profile-btn ">Add Post</a>
-        <a asp-controller="Account" asp-action="Logout" class="btn btn-outline-primary mb-3 profile-btn ">Log out</a>
+        <form method="post" asp-area="" asp-controller="Account" asp-action="Logout">
+            <button class="btn btn-outline-primary mb-3 profile-btn ">Logout</button>
+        </form>
         @if (TempData["PasswordChangeSuccess"] != null)
         {
             <p class="text-success">@TempData["PasswordChangeSuccess"]</p>
