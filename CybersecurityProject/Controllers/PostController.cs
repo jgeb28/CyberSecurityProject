@@ -53,6 +53,7 @@ public class PostController : Controller
 
         if (viewModel.IsVerified == true)
         {
+            await Task.Delay(1000);
             if (!await _userManager.CheckPasswordAsync(user, viewModel.Password))
             {
                 ModelState.AddModelError("Password", "Incorrect password.");
@@ -86,13 +87,6 @@ public class PostController : Controller
 
             signature = Convert.ToBase64String(signatureBytes, Base64FormattingOptions.InsertLineBreaks);
             verified = true;
-            Console.WriteLine("RSA");
-            Console.WriteLine(signature);
-            Console.WriteLine("");
-            Console.WriteLine(user.RsaPublicKey);
-            Console.WriteLine("");
-            Console.WriteLine(sanitized);
-
         }
 
         Post post = new Post
