@@ -94,7 +94,7 @@ public class AccountController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null)
         {
-            return BadRequest();
+            return BadRequest("User not found");
         }
         if (user.TwoFactorEnabled)
         {
@@ -125,7 +125,7 @@ public class AccountController : Controller
         var user = await _userManager.GetUserAsync(User); 
         if (user == null)
         {
-            return BadRequest();
+            return BadRequest("User not found");
         }
         if (user.TwoFactorEnabled)
         {
@@ -157,6 +157,7 @@ public class AccountController : Controller
     [HttpPost]
     public async Task<IActionResult> Login(LoginViewModel viewModel)
     {
+        await Task.Delay(1000);
         if (ModelState.IsValid)
         {
             var user = await _userManager.FindByEmailAsync(viewModel.Email);
@@ -213,6 +214,7 @@ public class AccountController : Controller
         {
             return RedirectToAction("Login");
         }
+        await Task.Delay(1000);
         var result = await _signInManager.TwoFactorAuthenticatorSignInAsync(
             viewModel.Code, 
             false, 
@@ -248,6 +250,7 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ChangePassword(ChangePasswordViewModel viewModel)
     {
+        await Task.Delay(1000);
         if (!ModelState.IsValid)
         {
             return View(viewModel);
