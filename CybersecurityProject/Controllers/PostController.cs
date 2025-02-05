@@ -66,7 +66,7 @@ public class PostController : Controller
         var sanitizer = new HtmlSanitizer();
         var sanitized = sanitizer.Sanitize(markdown);
         var sanitizedTitle = sanitizer.Sanitize(viewModel.Title);
-        if (sanitized != "")
+        if (sanitized == "")
         {
             ModelState.AddModelError("Title", "Invalid title.");
             return View(viewModel);
