@@ -65,6 +65,12 @@ public class PostController : Controller
         bool verified = false;
         var sanitizer = new HtmlSanitizer();
         var sanitized = sanitizer.Sanitize(markdown);
+        var sanitizedTitle = sanitizer.Sanitize(viewModel.Title);
+        if (sanitizedTitle == "")
+        {
+            ModelState.AddModelError("Title", "Incorrect title.");
+            return View(viewModel);
+        }
 
         if (viewModel.IsVerified == true)
         {
@@ -91,7 +97,7 @@ public class PostController : Controller
 
         Post post = new Post
         {
-            Title = viewModel.Title,
+            Title = sanitizedTitle,
             Content = sanitized,
             Author = user,
             IsVerified = verified,
