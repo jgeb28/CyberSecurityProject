@@ -127,6 +127,10 @@ public class AccountController : Controller
         {
             return BadRequest("User not found");
         }
+        if (HttpContext.Session.GetString("HashKey") == null)
+        {
+            return RedirectToAction("Login");
+        }
         if (user.TwoFactorEnabled)
         {
             TempData["Error"] = "Two-factor authentication already is enabled on this Account.";
