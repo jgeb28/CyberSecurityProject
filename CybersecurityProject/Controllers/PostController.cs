@@ -65,6 +65,12 @@ public class PostController : Controller
         bool verified = false;
         var sanitizer = new HtmlSanitizer();
         var sanitized = sanitizer.Sanitize(markdown);
+        var sanitizedTitle = sanitizer.Sanitize(viewModel.Title);
+        if (sanitized != "")
+        {
+            ModelState.AddModelError("Title", "Invalid title.");
+            return View(viewModel);
+        }
 
         if (viewModel.IsVerified == true)
         {
@@ -73,11 +79,11 @@ public class PostController : Controller
                 _encryptionService.DecryptKey(Convert.FromBase64String(rsaEncrypted), viewModel.Password);
             using var rsa = RSA.Create();
 
-            rsa.ImportPkcs8PrivateKey(rsaDecrypted, out _);
+            rsa.ImportRSAPrivateKey(rsaDecrypted, out _);
             byte[] data = Encoding.UTF8.GetBytes(sanitized);
 
             byte[] signatureBytes = rsa.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-            rsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(user.RsaPublicKey), out _);
+            rsa.ImportRSAPublicKey(Convert.FromBase64String(user.RsaPublicKey), out _);
             bool isVerified = rsa.VerifyData(data, signatureBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
             if (!isVerified)
             {
@@ -91,7 +97,7 @@ public class PostController : Controller
 
         Post post = new Post
         {
-            Title = viewModel.Title,
+            Title = sanitizedTitle,
             Content = sanitized,
             Author = user,
             IsVerified = verified,

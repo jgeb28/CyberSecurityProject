@@ -54,9 +54,9 @@ public class AccountController : Controller
             string sanitizedEmail = sanitizer.Sanitize(viewModel.Email);
 
             using RSA rsa = RSA.Create(2048);
-            var publicKey = rsa.ExportSubjectPublicKeyInfo();
+            var publicKey = rsa.ExportRSAPublicKey();
             string publicKeyString = Convert.ToBase64String(publicKey, Base64FormattingOptions.InsertLineBreaks);
-            var privateKey = rsa.ExportPkcs8PrivateKey();
+            var privateKey = rsa.ExportRSAPrivateKey();
             string privateKeyString = Convert.ToBase64String(_aesEncryptionService.EncryptKey(privateKey, viewModel.Password));
             User user = new User
             {
@@ -260,6 +260,12 @@ public class AccountController : Controller
         if (user == null)
         {
             return RedirectToAction("Login");
+        }
+        var isOldPasswordValid = await _userManager.CheckPasswordAsync(user, viewModel.OldPassword);
+        if (!isOldPasswordValid)
+        {
+            ModelState.AddModelError("OldPassword", "Old Password is invalid.");
+            return View(viewModel);
         }
         GenerateSessionHashKey(viewModel.OldPassword);
         var is2FaValid = await _userManager.VerifyTwoFactorTokenAsync(user, "MyTotpTokenProvider", viewModel.Code);
